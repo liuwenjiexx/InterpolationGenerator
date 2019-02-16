@@ -1,0 +1,843 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <meta name="GENERATOR" content="MSHTML 9.00.8112.16421" />
+    <title></title>
+    <style>
+        #canvas {
+            margin: auto; /*width: 500px;*/
+            height: 500px;
+        }
+
+        .code {
+            border: solid 1px black;
+        }
+
+            .code textarea {
+                color: Blue;
+                width: 80%;
+                height: 100px;
+            }
+
+        .slide_underline {
+            position: relative;
+            margin: 10px;
+        }
+
+            .slide_underline .label * {
+                text-decoration: none;
+            }
+
+            .slide_underline .underline {
+                background: blue;
+                height: 2px;
+                width: 100%;
+                line-height: 2px;
+            }
+    </style>
+    <script src="js/raphael-min.js" type="text/javascript"></script>
+    <script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>
+</head>
+<body style="padding: 0px; margin: 0px;">
+    <!---->
+    <div id="js1" style="display: none;">
+        需要引用<a href="http://raphaeljs.com/">raphael-min.js</a>库与本页面同目录。
+        <script>
+            if (typeof Raphael == "undefined") {
+                document.getElementById("js1").style.display = "block";
+            }
+        </script>
+    </div>
+    <div id="canvas">
+    </div>
+    <script>
+
+
+
+
+
+        var paper;
+        var rect;
+        var unitRect;
+        var targetStartPos;
+        var targetEndPos;
+        var animTarget;
+        var animTargetDir;
+        var animTargetLine;
+        var timeScaleSlider;
+        var controls;
+        var timeScale = 1;
+        var controlPointAttr = { fill: "blue", stroke: "none" };
+        var timeAxis;
+
+        var curve1;
+        var curve2;
+        var codeFormat = "js";
+        unitRect = { x: 0, y: 0, width: 160, height: 160 };
+        var step = unitRect.width;
+        var gridAttr, animTargetAttr, animTargetDirAttr ;
+
+        function linearBezier(t) {
+            return t;
+        }
+        function test(t) {
+            var ts = t * t;
+            var tc = ts * t;
+            return (6 * tc * ts + -15 * ts * ts + 10 * tc);
+        }
+        function test2(t) {
+            var ts = t * t;
+            var tc = ts * t;
+            return 56 * tc * ts + -175 * ts * ts + 200 * tc + -100 * ts + 20 * t;
+        }
+
+
+
+
+        window.onload = function () {
+
+
+
+
+            paper = new Raphael("canvas");
+
+            paper.rect(0, 0, paper.width, paper.height, 0);
+              gridAttr = { stroke: Raphael.getRGB("#000000"), "stroke-width": .2, "stroke-dasharray": "- " };
+              animTargetAttr = { fill: "red", stroke: "none", cx: 100, cy: paper.height - 100, r: 20 };
+              animTargetDirAttr = { fill: "blue", stroke: "none", cx: paper.width - 100, cy: paper.height - 100, r: 20 };
+            var animTargetLineAttr = { stroke: "green", "stroke-width": 1, "stroke-dasharray": ". " };
+
+
+
+
+
+
+
+            function update1() {
+
+                rect = { x: 0, y: 0, width: paper.width, height: paper.height };
+
+                timeAxis = { minX: rect.x, minY: rect.y + rect.height / 2, maxX: rect.x + rect.width, maxY: rect.y + rect.height / 2 };
+
+                var path;
+
+                path = "M" + timeAxis.minX + " " + timeAxis.minY + "L" + timeAxis.maxX + " " + timeAxis.maxY;
+                paper.path(path).attr({ stroke: Raphael.getRGB("#CCCCCC"), "stroke-width": 2, "stroke-linecap": "round" });
+
+                //draw grid
+                var gridSize = { x: 20, y: 20 };
+
+                path = "";
+                for (var count = Math.round(rect.width / gridSize.x), i = 0; i < count; i++) {
+                    var x = (rect.x + gridSize.x * i), y = rect.y;
+
+                    path += "M" + x + " " + y + "L" + x + " " + (y + rect.height);
+                }
+                for (var count = Math.round(rect.height / gridSize.y), i = -count; i < count; i++) {
+                    var x = rect.x;
+                    var y = (timeAxis.minY + gridSize.y * i);
+                    path += "M" + x + " " + y + "L" + (x + rect.width) + " " + y;
+                }
+
+                paper.path(path).attr(gridAttr);
+
+                curve1 = paper.path().attr({ stroke: Raphael.getRGB("#0000ff"), "stroke-width": 1/*, "stroke-dasharray": "- "*/ });
+                curve2 = paper.path().attr({ stroke: Raphael.getRGB("#000"), "stroke-width": 1 });
+
+
+
+                // drawCurve(linearBezier);
+
+                //                var curvePath = "";
+                //                var step = 50;
+                //                var lastX = 0.0;
+                //                var lastY = 0.0;
+                //                for (var i = 0; i <= step; i++) {
+                //                    var t = i / step;
+                //                    var x = Math.round(unitRect.width * t);
+                //                    var y = -Math.round(unitRect.height * test(t));
+                //                    curvePath += "l" + (x - lastX) + " " + (y - lastY);
+                //                    lastX = x;
+                //                    lastY = y;
+                //                }
+
+                //                curve1 = paper.path("M" + timeAxis.minX + " " + (timeAxis.minY) + curvePath).attr({ stroke: Raphael.getRGB("#0000ff"), "stroke-width": 1/*, "stroke-dasharray": "- "*/ });
+
+                //                var tmp = [];
+                //                tmp.push("M" + (timeAxis.minX + lastX) + " " + (timeAxis.minY + lastY));
+                //                for (var i = 1, count = Math.ceil(rect.width / unitRect.width); i < count; i++) {
+                //                    var x = (timeAxis.minX + unitRect.width * i);
+                //                    tmp.push("L" + x + " " + (timeAxis.minY) + curvePath);
+                //                }
+
+                //                curve2 = paper.path(tmp.join()).attr({ stroke: Raphael.getRGB("#000"), "stroke-width": 1 });
+
+
+
+
+
+                controls = paper.set(createControlPoint(timeAxis.minX, timeAxis.minY), createControlPoint(timeAxis.minX + unitRect.width * 0.2, timeAxis.minY), createControlPoint(timeAxis.minX + unitRect.width * 0.4, timeAxis.minY), createControlPoint(timeAxis.minX + unitRect.width * 0.6, timeAxis.minY), createControlPoint(timeAxis.minX + unitRect.width * 0.8, timeAxis.minY), createControlPoint(timeAxis.minX + unitRect.width, timeAxis.minY));
+
+
+                for (var i = 0; i < controls.length; i++) {
+                    var ctrl = controls[i];
+                    ctrl.drag(function () { }, function () {
+
+                    }, function () {
+                        controlRedrawCurve();
+                    });
+
+
+                }
+
+                setReverseCurve(samples[0]);
+
+
+
+
+
+                animTargetLine = paper.path().attr(animTargetLineAttr);
+
+                animTargetDir = paper.circle().attr(animTargetDirAttr);
+
+                animTarget = paper.circle().attr(animTargetAttr);
+
+                targetStartPos = getPos(animTarget);
+                targetEndPos = getPos(animTargetDir);
+
+
+                animTargetLine.attr("path", getLinePath(animTarget, animTargetDir));
+
+
+
+                animTarget.drag(dragMove, dragStart);
+
+                animTarget.drag(function (dx, dy) {
+                    animTargetLine.attr("path", getLinePath(this, animTargetDir));
+                    targetStartPos = getPos(this);
+                });
+
+
+
+                animTargetDir.drag(dragMove, dragStart);
+
+
+                animTargetDir.drag(function (dx, dy) {
+
+                    animTargetLine.attr("path", getLinePath(animTarget, animTargetDir));
+                    targetEndPos = getPos(this);
+                });
+
+
+
+            }
+
+
+
+            update1();
+            start();
+
+        };
+
+        function setReverseCurve(a) {
+            var xs = Bezier.reverse5(a);
+
+            controls[0].setVal(xs.x0);
+            controls[1].setVal(xs.x1);
+            controls[2].setVal(xs.x2);
+            controls[3].setVal(xs.x3);
+            controls[4].setVal(xs.x4);
+            controls[5].setVal(xs.x5);
+
+            controlRedrawCurve();
+        }
+
+
+        function drawCurve(curve) {
+
+            var curvePath = "";
+
+            var lastX = 0.0;
+            var lastY = 0.0;
+            for (var i = 0; i <= step; i++) {
+                var t = i / step;
+                var x = Math.round(unitRect.width * t);
+                var y = -Math.round(unitRect.height * curve(t));
+                curvePath += "l" + (x - lastX) + " " + (y - lastY);
+                lastX = x;
+                lastY = y;
+            }
+
+
+            var tmp = [];
+            tmp.push("M" + (timeAxis.minX + lastX) + " " + (timeAxis.minY + lastY));
+
+            for (var i = 1, count = Math.ceil(rect.width / unitRect.width), count = 3; i < count; i++) {
+                var x = 100 + (timeAxis.minX + unitRect.width * i);
+
+                if (i < 2)
+                    tmp.push("L" + x + " " + (timeAxis.minY) + curvePath);
+                else
+                    tmp.push("L" + x + " " + (timeAxis.minY));
+            }
+
+            curve1.attr({ "path": "M" + timeAxis.minX + " " + (timeAxis.minY) + curvePath });
+            curve2.attr({ "path": tmp.join() });
+
+        }
+
+
+
+        Math.clamp = function (val, min, max) {
+            return val < min ? min : val > max ? max : val;
+        }
+        Math.clamp01 = function (val) {
+            return val < 0.0 ? 0.0 : val > 1.0 ? 1.0 : val;
+        }
+
+        Math.lerp = function (start, end, t) {
+            return start + (end - start) * t;
+        }
+
+        Bezier = function () {
+        }
+        Bezier.get5Params = function (c0, c1, c2, c3, c4, c5) {
+
+            var e = 5 * (c1 - c0);
+            var d = 10 * (c2 - c0) - 4 * e;
+            var c = 10 * (c3 - c0) + 30 * (c1 - c2);
+            var b = 5 * (c4 + c0) - 20 * (c3 + c1) + 30 * c2;
+            var a = c5 - c0 - b - c - d - e;
+            return { a: a, b: b, c: c, d: d, e: e };
+        }
+
+        Bezier.get5Curve = function (a, b, c, d, e) {
+            if (typeof arguments[0] == "object") {
+                e = a.e;
+                d = a.d;
+                c = a.c;
+                b = a.b;
+                a = a.a;
+            }
+            return function (t) {
+                var ts = t * t;
+                var tc = ts * t;
+                return a * tc * ts + b * ts * ts + c * tc + d * ts + e * t;
+            }
+        }
+
+        Bezier.reverse5 = function (a, b, c, d, e) {
+            if (typeof arguments[0] == "object") {
+                e = a.e;
+                d = a.d;
+                c = a.c;
+                b = a.b;
+                a = a.a;
+            }
+
+            var x1 = e / 5;
+            var x2 = (d + 4 * e) / 10;
+            var x3 = (c + 6 * e + 3 * d) / 10;
+            var x4 = (b + 4 * e + 3 * d + 2 * c) / 5;
+            return { x0: 0, x1: x1, x2: x2, x3: x3, x4: x4, x5: 1 };
+        }
+
+
+        Bezier.get5CurveJSCode = function (a, b, c, d, e) {
+            if (typeof arguments[0] == "object") {
+                e = a.e;
+                d = a.d;
+                c = a.c;
+                b = a.b;
+                a = a.a;
+            }
+            var codes = [];
+
+
+            if (a) codes.push(((a != 1) ? a + "*" : "") + "tc*ts");
+            if (b) codes.push(((b != 1) ? b + "*" : "") + "ts*ts");
+            if (c) codes.push(((c != 1) ? c + "*" : "") + "tc");
+            if (d) codes.push(((d != 1) ? d + "*" : "") + "ts");
+            if (e) codes.push(((e != 1) ? e + "*" : "") + "t");
+
+            //****
+
+            var tmp = codes.join("+");
+            while (codes.length > 0)
+                codes.pop();
+            codes.push("return " + tmp + ";\n");
+
+            var ts = codes[0].indexOf("ts") != -1, tc = codes[0].indexOf("tc") != -1;
+
+            codes.push("function (t) {\n\t");
+
+            if (tc) {
+                if (ts) {
+                    codes.push("var ts=t*t;\n\tvar tc=ts*t;\n\t");
+                } else {
+                    codes.push("var tc=t*t*t;\n\t");
+                }
+            } else {
+                if (ts) {
+                    codes.push("var ts=t*t;\n\t");
+                }
+            }
+
+            codes.push(codes.shift());
+
+            codes.push("}");
+            return codes.join("");
+        }
+
+        Bezier.get5CurveVBCode = function (a, b, c, d, e) {
+            if (typeof arguments[0] == "object") {
+                e = a.e;
+                d = a.d;
+                c = a.c;
+                b = a.b;
+                a = a.a;
+            }
+            var codes = [];
+
+
+            if (a) codes.push(((a != 1) ? a + "*" : "") + "tc*ts");
+            if (b) codes.push(((b != 1) ? b + "*" : "") + "ts*ts");
+            if (c) codes.push(((c != 1) ? c + "*" : "") + "tc");
+            if (d) codes.push(((d != 1) ? d + "*" : "") + "ts");
+            if (e) codes.push(((e != 1) ? e + "*" : "") + "t");
+
+            //****
+
+            var tmp = codes.join("+");
+            while (codes.length > 0)
+                codes.pop();
+            codes.push("\tMyFunc = " + tmp + "\n");
+
+            var ts = codes[0].indexOf("ts") != -1, tc = codes[0].indexOf("tc") != -1;
+
+            codes.push("Public Function MyFunc(t)\n");
+
+            if (tc || ts) {
+                var tmp = "\tDim";
+                var first = true;
+                if (tc) {
+                    if (!first)
+                        tmp += ",";
+                    else
+                        first = false;
+                    tmp += " tc";
+                }
+                if (ts) {
+                    if (!first)
+                        tmp += ",";
+                    else
+                        first = false;
+                    tmp += " ts";
+                }
+                tmp += " As Single\n";
+                codes.push(tmp);
+            }
+
+            if (tc) {
+                if (ts) {
+                    codes.push("\tts=t*t\n");
+                    codes.push("\ttc=ts*t\n");
+                } else {
+                    codes.push("\ttc=t*t*t\n");
+                }
+            } else {
+                if (ts) {
+                    codes.push("\tts=t*t\n");
+                }
+            }
+
+            codes.push(codes.shift());
+
+            codes.push("End Function");
+            return codes.join("");
+        }
+
+        // alert(Bezier.get5CurveJSCode(1, 2, 3, 4, 5));
+
+
+
+        var samples = [{ label: "no easing", a: 0, b: 0, c: 0, d: 0, e: 1 },
+        { label: "in-out cubic", a: 0, b: 0, c: -2, d: 3, e: 0 },
+        { label: "in-out quintic", a: 6, b: -15, c: 10, d: 0, e: 0 },
+        { label: "in quintic", a: 1, b: 0, c: 0, d: 0, e: 0 },
+        { label: "in quartic", a: 0, b: 1, c: 0, d: 0, e: 0 },
+        { label: "in cubic", a: 0, b: 0, c: 1, d: 0, e: 0 },
+        { label: "in quadratic", a: 0, b: 0, c: 0, d: 1, e: 0 },
+        { label: "out quintic", a: 1, b: -5, c: 10, d: -10, e: 5 },
+        { label: "out quartic", a: 0, b: -1, c: 4, d: -6, e: 4 },
+        { label: "out cubic", a: 0, b: 0, c: 1, d: -3, e: 3 },
+        { label: "out-in cubic", a: 0, b: 0, c: 4, d: -6, e: 3 },
+        { label: "out-in quartic", a: 0, b: 0, c: 6, d: -9, e: 4 },
+        { label: "back in cubic", a: 0, b: 0, c: 4, d: -3, e: 0 },
+        { label: "back in quartic", a: 0, b: 2, c: 2, d: -3, e: 0 },
+        { label: "out back cubic", a: 0, b: 0, c: 4, d: -9, e: 6 },
+        { label: "out back quartic", a: 0, b: -2, c: 10, d: -15, e: 8 },
+        { label: "out elastic (small)", a: 33, b: -106, c: 126, d: -67, e: 15 },
+        { label: "out elastic (big)", a: 56, b: -175, c: 200, d: -100, e: 20 },
+        { label: "in elastic (small)", a: 33, b: -59, c: 32, d: -5, e: 0 },
+        { label: "in elastic (big)", a: 56, b: -105, c: 60, d: -10, e: 0 }];
+
+
+
+        function getLinePath(a, b) {
+            var aPos, bPos;
+            aPos = getPos(a);
+            bPos = getPos(b);
+            return "M" + aPos.x + " " + aPos.y + "L" + bPos.x + " " + bPos.y;
+        }
+
+        function getPos(a) {
+            if (a.type = "circle") {
+                return { x: a.attr("cx"), y: a.attr("cy") };
+            }
+        }
+
+        function dragMove(dx, dy) {
+
+            var pos = { cx: this.originPos.x + dx, cy: this.originPos.y + dy };
+            pos.cx = Math.clamp(pos.cx, rect.x, rect.x + rect.width);
+            pos.cy = Math.clamp(pos.cy, rect.y, rect.y + rect.height);
+            this.attr(pos);
+
+
+        }
+        function dragStart() {
+
+            this.originPos = getPos(this);
+
+        }
+
+        function createHSlider(x, y, label, min, max, val) {
+
+            var o = { x: x, y: y, height: 7, width: 100, barWidth: 10, barHeight: 20, val: val, min: min, max: max };
+            o.label = paper.text(o.x - 25, o.y + 3, label);
+            o.bg = paper.rect(o.x, o.y, o.width, o.height, 3).attr({ fill: "green", stroke: "black", "stroke-width": 1 });
+            o.bar = paper.rect(o.x, o.y - (o.barHeight - o.height) / 2, o.barWidth, o.barHeight, 3).attr({ fill: "blue", stroke: "black", "stroke-width": 1 });
+            o.setVal = function (val) {
+                val = Math.clamp(val, o.min, o.max);
+                if (o.change) {
+                    val = o.change(val);
+                }
+                o.val = val;
+
+                o.bar.attr("x", o.x + (o.width - o.barWidth) * ((val - o.min) / (o.max - o.min)));
+
+            }
+            o.setVal(val);
+
+            o.bar.drag(function (dx, dy) {
+                var x = dx - (this.dx || 0);
+
+                var val = o.val + x / (o.width - o.barWidth);
+                //timeScaleSlider.label.attr("text", Math.round(val * 10) / 10);
+                val = Math.clamp(val, o.min, o.max);
+
+
+                o.setVal(val);
+                this.dx = dx;
+            }, function () {
+                this.dx = 0;
+            });
+
+            return o;
+        }
+        function createControlPoint(x, y) {
+
+            var circle = paper.circle(x, y, 5);
+
+            circle.attr(controlPointAttr);
+
+            circle.drag(function (dx, dy) {
+
+                this.dx = dx;
+                this.dy = dy;
+                var pos = { /*cx: this.originPos.x + dx,*/cy: this.originPos.y + dy };
+                //pos.cx = Math.clamp(pos.cx, rect.x, rect.x + rect.width);
+                pos.cy = Math.clamp(pos.cy, rect.y, rect.y + rect.height);
+                this.attr(pos);
+
+            }, function () {
+                this.dx = this.dy = 0;
+
+                this.originPos = { x: this.attr("cx"), y: this.attr("cy") };
+            });
+
+
+
+
+            circle.setVal = function (val) {
+                this.val = val;
+
+                this.attr("cy", timeAxis.minY + unitRect.height * -val);
+
+            }
+
+            circle.getVal = function () {
+                var y = this.attr("cy") || 0;
+                return -(y - timeAxis.minY) / unitRect.height;
+            }
+
+            circle.setVal(0);
+
+            return circle;
+        }
+
+        function start() {
+
+
+            var curveList = document.getElementById("curveList");
+
+            for (var i = 0; i < samples.length; i++) {
+                var opt = document.createElement("option");
+                var sample = samples[i];
+                opt.innerHTML = sample.label;
+
+                opt.value = i;
+                opt.objValue = sample;
+                if (i == 0)
+                    opt.selected = true;
+                curveList.appendChild(opt);
+            }
+
+
+
+            setReverseCurve(samples[curveList.selectedIndex]);
+
+
+            time = new Date();
+
+            timeScaleSlider = createHSlider(50, rect.height - 150, "时间", 0.1, 3, timeScale);
+            timeScaleSlider.change = function (val) {
+                timeScale = val;
+                timeScaleSlider.label.attr("text", "时间" + Math.round(val * 10) / 10);
+                return val;
+            }
+
+            document.getElementById("curveCode").onchange = function () {
+
+
+                curve = eval("(function (){ return " + this.value + " ;})()");
+
+                drawCurve(curve);
+            }
+        
+            paper.text(animTargetAttr.cx, animTargetAttr.cy+30, "press <space> key");
+
+
+            setInterval(function () {
+                var t = new Date();
+                deltaTime = (t.getTime() - time.getTime()) / 1000;
+                update();
+                time = t;
+            }, 1000 / fbps);
+        }
+        var fbps = 40;
+        var time = new Date();
+        var deltaTime = 0;
+
+        var isPlay = false;
+        var timeLine = 0;
+
+        var oldParams = {};
+
+        var curve;
+
+
+
+
+        function controlRedrawCurve() {
+
+            var c0, c1, c2, c3, c4, c5;
+            c0 = controls[0].getVal();
+            c1 = controls[1].getVal();
+            c2 = controls[2].getVal();
+            c3 = controls[3].getVal();
+            c4 = controls[4].getVal();
+            c5 = controls[5].getVal();
+
+            var params = Bezier.get5Params(c0, c1, c2, c3, c4, c5);
+
+            if (!curve || !curve.params || oldParams.a != params.a || oldParams.b != params.b || oldParams.c != params.c || oldParams.d != params.d || oldParams.e != params.e) {
+
+                //重绘曲线
+                curve = Bezier.get5Curve(params);
+                curve.params = params;
+
+                drawCurve(curve);
+                updateCodeText();
+                oldParams = params;
+
+            }
+
+        }
+
+        function updateCodeText() {
+
+            var code;
+            if (curve) {
+                params = curve.params;
+                if (codeFormat == "vb") {
+                    code = Bezier.get5CurveVBCode(params);
+
+                } else {
+                    code = Bezier.get5CurveJSCode(params);
+                }
+                $("#curveCode").val(code);
+            }
+        }
+
+
+
+        function update() {
+
+            // msg.innerHTML = deltaTime + "," + time.getTime();
+
+
+
+
+
+
+
+            if (isPlay && curve) {
+
+
+                timeLine += deltaTime / timeScale;
+                timeLine = Math.clamp01(timeLine);
+
+                var t = curve(timeLine);
+
+                var pos = { cx: Math.lerp(targetStartPos.x, targetEndPos.x, t), cy: Math.lerp(targetStartPos.y, targetEndPos.y, t) };
+                animTarget.attr(pos);
+
+
+
+
+                if (timeLine >= 1) {
+                    timeLine = 0;
+                }
+
+            }
+
+
+
+        }
+
+
+
+
+
+        document.onkeyup = function (e) {
+            e = e ? e : event;
+
+            if (e.keyCode == 32) {
+                isPlay = !isPlay;
+                if (!isPlay) {
+
+
+                }
+
+            }
+            switch (e.keyCode) {
+                case 13:
+                    isPlay = !isPlay;
+                    if (!isPlay) {
+                        timeLine = 0;
+                        animTarget.attr({ cx: targetStartPos.x, cy: targetStartPos.y });
+                    }
+                    break;
+            }
+        }
+
+
+
+
+
+        $(function () {
+
+            //初始化曲线列表
+
+            $("#curveList").change(function () {
+                setReverseCurve(samples[this.selectedIndex]);
+
+            });
+
+
+            //简单滑动动画
+
+            $(".slide_underline").each(function () {
+
+                var $this = $(this);
+                $this.find(".label > *").live("click", function () {
+                    if (this.selected)
+                        return;
+                    $this.find(".label > *[selected=true]").attr("selected", false);
+                    $(this).attr("selected", true);
+                    $this.selectchange();
+                });
+
+                $this.selectchange = function () {
+                    $this.find(".label > *[selected=true]:first").each(function () {
+                        var $el = $(this);
+                        codeFormat = $(this).attr("value");
+                        if (codeFormat == "js") {
+                            $("#curveCode").attr("readonly", "");
+                        } else {
+                            $("#curveCode").attr("readonly", "readonly");
+                        }
+                        $this.find(".underline").animate({ "marginLeft": $el.position().left, width: $el.width() }, 500 * timeScale, "mycurve");
+                        updateCodeText();
+                    });
+                }
+
+                $this.selectchange();
+            });
+
+
+            $("#copy_code").click(function () {
+
+                var $txt = $("#curveCode");
+                $txt.select();
+                document.execCommand("Copy");
+
+            });
+        });
+
+        $.easing.mycurve = function (t, b, c, d) {
+            t /= d;
+            return curve ? curve(t) : t;
+        }
+
+
+
+    </script>
+    <div>
+        <span>样例:</span>
+        <select id="curveList"></select>
+        <div class="code">
+            <div class="slide_underline">
+                <span>生成代码</span>
+                <!--<span id="copy_code" >复制</span>-->
+                <div class="label">
+                    <a href="javascript:void(0)" value="js" selected="true">JavaScript</a>
+                    <a href="javascript:void(0)" value="vb">VB</a>
+                </div>
+                <div class="underline">
+                    &nbsp;
+                </div>
+            </div>
+            <textarea id="curveCode">
+         Text           
+        </textarea>
+
+        </div>
+    </div>
+    <div id="msg">
+    </div>
+</body>
+</html>
